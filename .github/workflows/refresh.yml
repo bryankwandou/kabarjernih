@@ -1,0 +1,53 @@
+# Pulls the feeds every six hours and commits the new data.
+# If the repo is connected to Vercel, that commit triggers a deploy.
+# Otherwise set VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repo secrets
+# and the last step deploys directly. Without them the step is skipped.
+name: refresh-news
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run ingest
+      - name: Commit if anything changed
+        id: commit
+        run: |
+          if git diff --quiet data/; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "kabarjernih-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/
+          git commit -m "data: refresh feeds $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+      - name: Deploy to Vercel
+        if: steps.commit.outputs.changed == 'true' && env.VERCEL_TOKEN != ''
+        run: |
+          npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel@latest build --prod --token="$VERCEL_TOKEN"
+          npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
