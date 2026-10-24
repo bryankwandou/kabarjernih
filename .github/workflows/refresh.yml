@@ -1,4 +1,4 @@
-# Pulls the feeds every six hours and commits the new data.
+# Pulls the feeds every hour and commits the new data.
 # If the repo is connected to Vercel, that commit triggers a deploy.
 # Otherwise set VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repo secrets
 # and the last step deploys directly. Without them the step is skipped.
@@ -6,7 +6,7 @@ name: refresh-news
 
 on:
   schedule:
-    - cron: "17 */6 * * *"
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -50,4 +50,5 @@ jobs:
         run: |
           npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
           npx vercel@latest build --prod --token="$VERCEL_TOKEN"
+          npm run check
           npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"

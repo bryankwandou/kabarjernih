@@ -6,6 +6,7 @@ import sanitizeHtml from "sanitize-html";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { SOURCES } from "./sources.mjs";
+import { countriesOf } from "./countries.mjs";
 
 const OUT = new URL("../data/articles.json", import.meta.url);
 const KEEP_DAYS = 45;
@@ -182,7 +183,13 @@ async function main() {
   const byId = new Map(previous.map((a) => [a.id, a]));
   for (const a of fresh) byId.set(a.id, a);
   // Re-sort older entries too, so a change to TOPICS applies to the whole archive.
-  for (const a of byId.values()) a.topic = topicOf(a.tags, `${a.title} ${a.summary}`);
+  for (const a of byId.values()) {
+    a.topic = topicOf(a.tags, `${a.title} ${a.summary}`);
+    a.countries = countriesOf(a.tags, `${a.title} ${a.summary}`);
+    // A national edition mostly covers its own country, so use that when nothing else matched.
+    const home = SOURCES.find((s) => s.id === a.source)?.country;
+    if (!a.countries.length && home) a.countries = [home];
+  }
   const cutoff = Date.now() - KEEP_DAYS * 864e5;
   const seenTitles = new Set();
   const all = [...byId.values()]
@@ -197,7 +204,9 @@ async function main() {
 
   if (all.length < 50) throw new Error(`Only ${all.length} articles; refusing to overwrite data/articles.json`);
   await mkdir(new URL("../data/", import.meta.url), { recursive: true });
-  await writeFile(OUT, JSON.stringify(all));
+  // One article per line, so each hourly commit stores as a small git delta
+  // instead of a fresh multi-megabyte blob.
+  await writeFile(OUT, `[\n${all.map((a) => JSON.stringify(a)).join(",\n")}\n]\n`);
   console.log(`\n${all.length} articles written (${fresh.length} fetched now)`);
 }
 

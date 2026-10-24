@@ -51,6 +51,12 @@ const dict = {
     lead: "Utama",
     sources: "Sumber",
     textSize: "Ukuran teks",
+    countries: "Negara",
+    allTopics: "Semua topik",
+    allCountries: "Semua negara",
+    countriesIntro: "Negara dikenali dari tag penerbit, judul, dan ringkasan. Artikel dari edisi nasional ikut negara edisinya jika tidak menyebut negara lain.",
+    topicsIntro: "Rubrik ditentukan dari tag penerbit, judul, dan ringkasan artikel.",
+    searchGo: "Cari",
   },
   en: {
     tagline: "World news from openly licensed sources. No ads, no trackers, no paywall.",
@@ -85,6 +91,12 @@ const dict = {
     lead: "Lead",
     sources: "Sources",
     textSize: "Text size",
+    countries: "Countries",
+    allTopics: "All sections",
+    allCountries: "All countries",
+    countriesIntro: "Countries are read from the publisher's tags, the title and the summary. Articles from a national edition fall back to that edition's country when no other is named.",
+    topicsIntro: "Sections are assigned from the publisher's tags, the title and the summary.",
+    searchGo: "Search",
   },
 } as const;
 
@@ -97,6 +109,8 @@ const topicNames: Record<Ui, Record<string, string>> = {
 };
 export const topicName = (ui: Ui, topic: string) => topicNames[ui][topic] ?? topic;
 
+const regionNames = { id: new Intl.DisplayNames(["id"], { type: "region" }), en: new Intl.DisplayNames(["en"], { type: "region" }) };
+export const countryName = (ui: Ui, code: string) => regionNames[ui].of(code) ?? code;
 export function formatDate(iso: string, ui: Ui, withTime = false) {
   return new Intl.DateTimeFormat(ui === "id" ? "id-ID" : "en-GB", {
     day: "numeric", month: "long", year: "numeric",

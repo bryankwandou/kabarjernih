@@ -67,24 +67,30 @@ export function SavedList({ ui, empty }: { ui: string; empty: string }) {
   );
 }
 
-type Entry = { id: string; t: string; s: string; a: string; l: string; src: string; d: string; tp: string };
+type Entry = { id: string; t: string; s: string; a: string; l: string; src: string; d: string; tp: string; c: string[] };
 
 const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 
-export function Search({ ui, labels, langs }: {
+export function Search({ ui, labels, langs, topics, countries }: {
   ui: string;
-  labels: { ph: string; empty: string; hint: string; all: string; articles: string };
+  labels: { ph: string; empty: string; hint: string; all: string; articles: string; allTopics: string; allCountries: string };
   langs: Record<string, string>;
+  topics: Record<string, string>;
+  countries: Record<string, string>;
 }) {
   const [index, setIndex] = useState<Entry[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [q, setQ] = useState("");
   const [lang, setLang] = useState("");
+  const [topic, setTopic] = useState("");
+  const [country, setCountry] = useState("");
 
   useEffect(() => {
     const p = new URLSearchParams(location.search);
     setQ(p.get("q") ?? "");
     setLang(p.get("lang") ?? "");
+    setTopic(p.get("topik") ?? "");
+    setCountry((p.get("negara") ?? "").toUpperCase());
     fetch("/search.json").then((r) => (r.ok ? r.json() : Promise.reject())).then(setIndex).catch(() => setFailed(true));
   }, []);
 
@@ -92,14 +98,19 @@ export function Search({ ui, labels, langs }: {
     const p = new URLSearchParams();
     if (q) p.set("q", q);
     if (lang) p.set("lang", lang);
+    if (topic) p.set("topik", topic);
+    if (country) p.set("negara", country.toLowerCase());
     history.replaceState(null, "", p.size ? `?${p}` : location.pathname);
-  }, [q, lang]);
+  }, [q, lang, topic, country]);
+
+  // A filter alone is enough to list results; text needs two letters.
+  const active = q.trim().length >= 2 || !!(lang || topic || country);
 
   const hits = useMemo(() => {
-    if (!index || q.trim().length < 2) return [];
-    const terms = fold(q).split(/\s+/).filter(Boolean);
+    if (!index || !active) return [];
+    const terms = q.trim().length >= 2 ? fold(q).split(/\s+/).filter(Boolean) : [];
     return index
-      .filter((e) => !lang || e.l === lang)
+      .filter((e) => (!lang || e.l === lang) && (!topic || e.tp === topic) && (!country || e.c?.includes(country)))
       .map((e) => {
         const title = fold(e.t), rest = fold(`${e.s} ${e.a} ${e.src}`);
         let score = 0;
@@ -113,7 +124,7 @@ export function Search({ ui, labels, langs }: {
       .filter((x): x is { e: Entry; score: number } => !!x)
       .sort((a, b) => b.score - a.score || b.e.d.localeCompare(a.e.d))
       .slice(0, 60);
-  }, [index, q, lang]);
+  }, [index, q, lang, topic, country, active]);
 
   return (
     <div>
@@ -124,11 +135,19 @@ export function Search({ ui, labels, langs }: {
           <option value="">{labels.all}</option>
           {Object.entries(langs).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
+        <select value={topic} onChange={(e) => setTopic(e.target.value)} aria-label={labels.allTopics}>
+          <option value="">{labels.allTopics}</option>
+          {Object.entries(topics).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label={labels.allCountries}>
+          <option value="">{labels.allCountries}</option>
+          {Object.entries(countries).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
       </form>
       <p className="mono muted" aria-live="polite">
-        {failed ? "Index gagal dimuat / failed to load." : !index ? "…" : q.trim().length < 2 ? labels.hint : `${hits.length} ${labels.articles}`}
+        {failed ? "Index gagal dimuat / failed to load." : !index ? "…" : !active ? labels.hint : `${hits.length} ${labels.articles}`}
       </p>
-      {index && q.trim().length >= 2 && !hits.length && <p className="empty">{labels.empty}</p>}
+      {index && active && !hits.length && <p className="empty">{labels.empty}</p>}
       <ol className="list" style={{ listStyle: "none", padding: 0 }}>
         {hits.map(({ e }) => (
           <li key={e.id} className="story" style={{ gridTemplateColumns: "1fr" }}>

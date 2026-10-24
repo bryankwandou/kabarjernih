@@ -22,7 +22,7 @@ Gambar hanya diambil dari feed itu sendiri. Situs ini tidak mengambil `og:image`
 
 ```
 feed RSS/Atom ──► scripts/ingest.mjs ──► data/articles.json ──► next build (static export) ──► CDN
-                  (GitHub Actions, tiap 6 jam)
+                  (GitHub Actions, tiap jam)
 ```
 
 - `scripts/ingest.mjs` menarik semua feed di `scripts/sources.mjs`, membersihkan HTML dengan `sanitize-html`, membuang pelacak, mengelompokkan artikel ke rubrik, dan membuang duplikat antaredisi.
@@ -37,8 +37,9 @@ Seluruh situs adalah HTML statis (`output: "export"`). Membaca, mencari, atau me
 
 - **Database (Neon)**: tidak dipakai. Tidak ada data pengguna yang perlu disimpan di server.
 - **Blob storage**: tidak dipakai. Menyimpan salinan gambar justru menambah biaya dan memindahkan tanggung jawab lisensi gambar ke situs ini.
-- **GitHub Actions**: satu job sekitar 1 menit tiap 6 jam, kira-kira 120 menit per bulan. Repo publik tidak dikenai biaya menit Actions.
-- **Ukuran repo**: `data/articles.json` sekitar 6 MB dan dibatasi oleh jendela 45 hari, jadi tidak tumbuh terus.
+- **GitHub Actions**: satu job sekitar 1 menit tiap jam (sekitar 3 menit bila ada deploy), kira-kira 1.500 menit per bulan. Repo publik tidak dikenai biaya menit Actions.
+- **Vercel**: deploy hanya terjadi jika feed benar-benar berubah. Tidak ada artikel baru berarti tidak ada commit dan tidak ada build.
+- **Ukuran repo**: `data/articles.json` sekitar 6 MB dan dibatasi oleh jendela 45 hari. File ditulis satu artikel per baris, jadi tiap commit disimpan git sebagai selisih kecil, bukan salinan utuh.
 
 Video atau siaran langsung tidak di-host di sini. Jika suatu saat ditambahkan, cara yang tetap murah adalah menyematkan pemutar dari penerbit asal, bukan menyimpan atau meneruskan streamnya.
 
@@ -53,7 +54,9 @@ npm run build    # hasil statis di out/
 
 ## Pembaruan otomatis
 
-`.github/workflows/refresh.yml` berjalan tiap 6 jam dan meng-commit `data/articles.json` jika ada yang berubah. Agar commit itu langsung ter-deploy ke Vercel, tambahkan tiga secret di repo: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID` (dua yang terakhir ada di `.vercel/project.json` setelah `vercel link`). Tanpa secret itu, langkah deploy dilewati.
+`.github/workflows/refresh.yml` berjalan tiap jam (menit ke-17) dan meng-commit `data/articles.json` jika ada yang berubah, lalu men-deploy ke Vercel. Deploy memerlukan tiga secret di repo: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID` (dua yang terakhir ada di `.vercel/project.json` setelah `vercel link`). Tanpa secret itu, langkah deploy dilewati.
+
+Cara memeriksa sendiri bahwa situs mutakhir: riwayat commit `kabarjernih-bot` di repo, tab Actions (`refresh-news`), dan baris "Diperbarui" di kepala halaman, yang menunjukkan tanggal artikel terbaru.
 
 ## Lisensi
 

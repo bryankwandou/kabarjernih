@@ -11,7 +11,7 @@ export function Masthead({ ui, path = "", current }: { ui: Ui; path?: string; cu
       <div className="wrap">
         <div className="mast-top">
           <span className="mono">
-            {d.updated} {updated ? formatDate(updated, ui) : "—"}
+            {d.updated} {updated ? formatDate(updated, ui, true) : "—"}
           </span>
           <span className="mono hide-sm">{d.tagline.split(".")[1]?.trim()}</span>
           <nav className="ui-switch" aria-label="Bahasa antarmuka / Interface language">
@@ -33,6 +33,7 @@ export function Masthead({ ui, path = "", current }: { ui: Ui; path?: string; cu
           {TOPICS.map((tp) => (
             <a key={tp} href={`/${ui}/topik/${tp}/`} aria-current={current === tp ? "page" : undefined}>{topicName(ui, tp)}</a>
           ))}
+          <a href={`/${ui}/negara/`} aria-current={current === "negara" ? "page" : undefined}>{d.countries}</a>
           <a href={`/${ui}/cari/`} aria-current={current === "cari" ? "page" : undefined}>{d.search}</a>
           <a href={`/${ui}/simpan/`} aria-current={current === "simpan" ? "page" : undefined}>{d.saved}</a>
         </nav>

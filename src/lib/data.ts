@@ -12,6 +12,7 @@ export type Article = {
   lang: string;
   topic: string;
   tags: string[];
+  countries: string[];
   minutes: number;
   url: string;
   source: string;
@@ -34,6 +35,14 @@ export const card = ({ body, tags, ...rest }: Article): Card => rest;
 export const byId = (id: string) => all().find((a) => a.id === id);
 export const byTopic = (topic: string) => all().filter((a) => a.topic === topic);
 export const byLang = (lang: string) => all().filter((a) => a.lang === lang);
+
+export const byCountry = (code: string) => all().filter((a) => a.countries?.includes(code));
+
+export function countryCounts() {
+  const m = new Map<string, number>();
+  for (const a of all()) for (const c of a.countries ?? []) m.set(c, (m.get(c) ?? 0) + 1);
+  return [...m].sort((a, b) => b[1] - a[1]);
+}
 
 export function countBy<K extends "topic" | "lang" | "sourceName">(key: K) {
   const m = new Map<string, number>();
