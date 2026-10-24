@@ -42,6 +42,13 @@ function clean(html) {
     .trim();
 }
 
+// Feeds sometimes carry links relative to their own site ("/feed/"), which would
+// resolve against ours and break. Point them back at the article's origin.
+const absolutize = (html, base) =>
+  html.replace(/\b(href|src)="(?!https?:|mailto:|#)([^"]*)"/g, (m, k, v) => {
+    try { return `${k}="${new URL(v.replace(/&amp;/g, "&"), base).href.replace(/&/g, "&amp;")}"`; } catch { return m; }
+  });
+
 const plain = (html) =>
   sanitizeHtml(html, { allowedTags: [], allowedAttributes: {} })
     .replace(/&nbsp;/g, " ")
@@ -184,6 +191,8 @@ async function main() {
   for (const a of fresh) byId.set(a.id, a);
   // Re-sort older entries too, so a change to TOPICS applies to the whole archive.
   for (const a of byId.values()) {
+    a.body = absolutize(a.body, a.url);
+    if (a.image) try { a.image = new URL(a.image, a.url).href; } catch { a.image = null; }
     a.topic = topicOf(a.tags, `${a.title} ${a.summary}`);
     a.countries = countriesOf(a.tags, `${a.title} ${a.summary}`);
     // A national edition mostly covers its own country, so use that when nothing else matched.
