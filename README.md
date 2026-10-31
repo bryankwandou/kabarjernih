@@ -22,7 +22,7 @@ Gambar hanya diambil dari feed itu sendiri. Situs ini tidak mengambil `og:image`
 
 ```
 feed RSS/Atom ──► scripts/ingest.mjs ──► data/articles.json ──► next build (static export) ──► CDN
-                  (GitHub Actions, 4x/jam)
+                  (GitHub Actions, ~tiap 20 menit)
 ```
 
 - `scripts/ingest.mjs` menarik semua feed di `scripts/sources.mjs`, membersihkan HTML dengan `sanitize-html`, membuang pelacak, mengelompokkan artikel ke rubrik, dan membuang duplikat antaredisi.
@@ -37,8 +37,8 @@ Seluruh situs adalah HTML statis (`output: "export"`). Membaca, mencari, atau me
 
 - **Database (Neon)**: tidak dipakai. Tidak ada data pengguna yang perlu disimpan di server.
 - **Blob storage**: tidak dipakai. Menyimpan salinan gambar justru menambah biaya dan memindahkan tanggung jawab lisensi gambar ke situs ini.
-- **GitHub Actions**: satu job sekitar 30 detik, empat kali per jam (sekitar 3 menit bila ada deploy), kira-kira 3.000 menit per bulan. Repo publik tidak dikenai biaya menit Actions. Jadwal GitHub bisa telat atau terlewat saat sibuk, jadi empat jadwal per jam menjaga data tetap diperbarui minimal sekali sejam.
-- **Vercel**: deploy hanya terjadi jika feed benar-benar berubah. Tidak ada artikel baru berarti tidak ada commit dan tidak ada build.
+- **GitHub Actions**: satu runner praktis terpakai terus (kerja sekitar 1 menit, lalu menunggu 20 menit sebelum memicu run berikutnya). Repo publik tidak dikenai biaya menit Actions untuk runner standar. Jika repo dijadikan privat, rantai ini harus dimatikan karena akan menghabiskan kuota.
+- **Vercel**: deploy hanya terjadi jika feed benar-benar berubah, paling banyak sekitar 70 kali sehari, di bawah batas 100 deploy per hari paket gratis. Tidak ada artikel baru berarti tidak ada commit dan tidak ada build.
 - **Ukuran repo**: `data/articles.json` sekitar 6 MB dan dibatasi oleh jendela 45 hari. File ditulis satu artikel per baris, jadi tiap commit disimpan git sebagai selisih kecil, bukan salinan utuh.
 
 Video atau siaran langsung tidak di-host di sini. Jika suatu saat ditambahkan, cara yang tetap murah adalah menyematkan pemutar dari penerbit asal, bukan menyimpan atau meneruskan streamnya.
@@ -54,7 +54,7 @@ npm run build    # hasil statis di out/
 
 ## Pembaruan otomatis
 
-`.github/workflows/refresh.yml` berjalan empat kali per jam (menit ke-7, 22, 37, 52) dan meng-commit `data/articles.json` jika ada yang berubah, lalu men-deploy ke Vercel. Deploy memerlukan tiga secret di repo: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID` (dua yang terakhir ada di `.vercel/project.json` setelah `vercel link`). Tanpa secret itu, langkah deploy dilewati.
+`.github/workflows/refresh.yml` meng-commit `data/articles.json` jika ada yang berubah, lalu men-deploy ke Vercel. Setiap run menunggu 20 menit lalu memicu run berikutnya lewat `workflow_dispatch`, jadi pembaruan berjalan terus tanpa layanan cron luar. Jadwal cron GitHub hanya cadangan untuk menyalakan ulang rantai bila putus, karena dalam praktik GitHub menjalankannya hanya tiap 3 sampai 6 jam. Untuk menghentikan pembaruan, nonaktifkan workflow di tab Actions. Deploy memerlukan tiga secret di repo: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, dan `VERCEL_PROJECT_ID` (dua yang terakhir ada di `.vercel/project.json` setelah `vercel link`). Tanpa secret itu, langkah deploy dilewati.
 
 Cara memeriksa sendiri bahwa situs mutakhir: riwayat commit `kabarjernih-bot` di repo, tab Actions (`refresh-news`), dan baris "Diperbarui" di kepala halaman, yang menunjukkan tanggal artikel terbaru.
 

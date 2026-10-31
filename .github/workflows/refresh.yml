@@ -1,13 +1,12 @@
-# Pulls the feeds every hour, commits the new data and deploys to Vercel.
+# Pulls the feeds about every 20 minutes, commits the new data and deploys to Vercel.
 # Deploying needs VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repo
 # secrets; without them the step is skipped.
 name: refresh-news
 
 on:
   schedule:
-    # GitHub delays or drops scheduled runs under load, so ask four times an hour,
-    # away from the busy top of the hour. Most runs find nothing new and stop
-    # after ~30s; the repo is public, so these minutes are free.
+    # Backup only. The runs keep themselves going (see the last step); this cron
+    # restarts the chain if it breaks. GitHub fires it every few hours at best.
     - cron: "7,22,37,52 * * * *"
   workflow_dispatch:
   # Code changes deploy too. The bot's own data commits use GITHUB_TOKEN,
@@ -18,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # lets the last step queue the next run
 
 concurrency:
   group: refresh
@@ -26,7 +26,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 45
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -50,8 +50,12 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add data/
           git commit -m "data: refresh feeds $(date -u +%Y-%m-%dT%H:%MZ)"
-          git pull --rebase -X theirs origin main
-          git push
+          # GitHub occasionally answers a push with a 500; try again before giving up.
+          for i in 1 2 3; do
+            git pull --rebase -X theirs origin main && git push && break
+            [ "$i" = 3 ] && exit 1
+            sleep 20
+          done
           echo "changed=true" >> "$GITHUB_OUTPUT"
       - name: Deploy to Vercel
         # Hourly runs deploy only when the data moved; manual runs and code pushes always deploy.
@@ -62,3 +66,15 @@ jobs:
           npm run check
           # One archive instead of ~5,000 files: the free plan caps uploads at 5,000 files a day.
           npx vercel@latest deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN"
+      - name: Queue the next run
+        # In practice GitHub fires the cron above only every 3-6 hours. So every run
+        # waits 20 minutes and starts the next one itself. workflow_dispatch is the
+        # one event GITHUB_TOKEN is allowed to trigger. The concurrency group keeps at
+        # most one run going and one waiting, so overlapping chains collapse into one.
+        # The cron restarts the chain if it ever breaks. To stop: disable the workflow.
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sleep 1200
+          gh workflow run refresh-news --ref main -R "$GITHUB_REPOSITORY"
