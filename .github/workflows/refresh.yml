@@ -1,23 +1,17 @@
-# Pulls the feeds about every 20 minutes, commits the new data and deploys to Vercel.
+# Pulls the feeds once a day, commits the new data and deploys to Vercel.
 # Deploying needs VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID as repo
 # secrets; without them the step is skipped.
 name: refresh-news
 
 on:
   schedule:
-    # Backup only. The runs keep themselves going (see the last step); this cron
-    # restarts the chain if it breaks. GitHub fires it every few hours at best.
-    - cron: "7,22,37,52 * * * *"
+    # Once every 24 hours (22:07 UTC). This is the only automatic deploy; Vercel
+    # itself never deploys (vercel.json turns Git deployments off).
+    - cron: "7 22 * * *"
   workflow_dispatch:
-  # Code changes deploy too. The bot's own data commits use GITHUB_TOKEN,
-  # which never triggers another run, so this cannot loop.
-  push:
-    branches: [main]
-    paths-ignore: ["data/**", "README.md"]
 
 permissions:
   contents: write
-  actions: write # lets the last step queue the next run
 
 concurrency:
   group: refresh
@@ -58,23 +52,10 @@ jobs:
           done
           echo "changed=true" >> "$GITHUB_OUTPUT"
       - name: Deploy to Vercel
-        # Hourly runs deploy only when the data moved; manual runs and code pushes always deploy.
-        if: (steps.commit.outputs.changed == 'true' || github.event_name != 'schedule') && env.VERCEL_TOKEN != ''
+        if: env.VERCEL_TOKEN != ''
         run: |
           npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
           npx vercel@latest build --prod --token="$VERCEL_TOKEN"
           npm run check
           # One archive instead of ~5,000 files: the free plan caps uploads at 5,000 files a day.
           npx vercel@latest deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN"
-      - name: Queue the next run
-        # In practice GitHub fires the cron above only every 3-6 hours. So every run
-        # waits 20 minutes and starts the next one itself. workflow_dispatch is the
-        # one event GITHUB_TOKEN is allowed to trigger. The concurrency group keeps at
-        # most one run going and one waiting, so overlapping chains collapse into one.
-        # The cron restarts the chain if it ever breaks. To stop: disable the workflow.
-        if: always()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          sleep 1200
-          gh workflow run refresh-news --ref main -R "$GITHUB_REPOSITORY"
