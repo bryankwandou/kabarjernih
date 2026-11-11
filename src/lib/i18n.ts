@@ -57,6 +57,10 @@ const dict = {
     countriesIntro: "Negara dikenali dari tag penerbit, judul, dan ringkasan. Artikel dari edisi nasional ikut negara edisinya jika tidak menyebut negara lain.",
     topicsIntro: "Rubrik ditentukan dari tag penerbit, judul, dan ringkasan artikel.",
     searchGo: "Cari",
+    everywhere: "Semua berita",
+    allMedia: "Semua media",
+    withImage: "Dengan gambar",
+    textOnly: "Teks saja",
   },
   en: {
     tagline: "World news from openly licensed sources. No ads, no trackers, no paywall.",
@@ -97,6 +101,10 @@ const dict = {
     countriesIntro: "Countries are read from the publisher's tags, the title and the summary. Articles from a national edition fall back to that edition's country when no other is named.",
     topicsIntro: "Sections are assigned from the publisher's tags, the title and the summary.",
     searchGo: "Search",
+    everywhere: "All news",
+    allMedia: "All media",
+    withImage: "With picture",
+    textOnly: "Text only",
   },
 } as const;
 

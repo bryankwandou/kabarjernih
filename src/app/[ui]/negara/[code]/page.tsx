@@ -16,5 +16,5 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
 export default async function CountryPage({ params }: P) {
   const { ui, code } = await params;
   const cc = code.toUpperCase();
-  return <Listing ui={ui} path={`negara/${code}/`} current="negara" kicker={t(ui).countries} title={countryName(ui, cc)} items={byCountry(cc)} />;
+  return <Listing ui={ui} path={`negara/${code}/`} current="negara" kicker={t(ui).countries} title={countryName(ui, cc)} items={byCountry(cc)} scope={{ param: "negara", value: code, label: countryName(ui, cc) }} />;
 }

@@ -25,7 +25,7 @@ export default async function SearchPage({ params }: { params: Promise<{ ui: Ui 
           langs={langs}
           topics={topics}
           countries={countries}
-          labels={{ ph: d.searchPh, empty: d.searchEmpty, hint: d.searchHint, all: d.allLangs, articles: d.articles, allTopics: d.allTopics, allCountries: d.allCountries }}
+          labels={{ ph: d.searchPh, empty: d.searchEmpty, hint: d.searchHint, all: d.allLangs, articles: d.articles, allTopics: d.allTopics, allCountries: d.allCountries, allMedia: d.allMedia, withImage: d.withImage, textOnly: d.textOnly }}
         />
       </main>
       <Footer ui={ui} />

@@ -67,13 +67,13 @@ export function SavedList({ ui, empty }: { ui: string; empty: string }) {
   );
 }
 
-type Entry = { id: string; t: string; s: string; a: string; l: string; src: string; d: string; tp: string; c: string[] };
+type Entry = { id: string; t: string; s: string; a: string; l: string; src: string; d: string; tp: string; c: string[]; m: number };
 
 const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 
 export function Search({ ui, labels, langs, topics, countries }: {
   ui: string;
-  labels: { ph: string; empty: string; hint: string; all: string; articles: string; allTopics: string; allCountries: string };
+  labels: { ph: string; empty: string; hint: string; all: string; articles: string; allTopics: string; allCountries: string; allMedia: string; withImage: string; textOnly: string };
   langs: Record<string, string>;
   topics: Record<string, string>;
   countries: Record<string, string>;
@@ -84,6 +84,7 @@ export function Search({ ui, labels, langs, topics, countries }: {
   const [lang, setLang] = useState("");
   const [topic, setTopic] = useState("");
   const [country, setCountry] = useState("");
+  const [media, setMedia] = useState("");
 
   useEffect(() => {
     const p = new URLSearchParams(location.search);
@@ -91,6 +92,7 @@ export function Search({ ui, labels, langs, topics, countries }: {
     setLang(p.get("lang") ?? "");
     setTopic(p.get("topik") ?? "");
     setCountry((p.get("negara") ?? "").toUpperCase());
+    setMedia(p.get("media") ?? "");
     fetch("/search.json").then((r) => (r.ok ? r.json() : Promise.reject())).then(setIndex).catch(() => setFailed(true));
   }, []);
 
@@ -100,17 +102,18 @@ export function Search({ ui, labels, langs, topics, countries }: {
     if (lang) p.set("lang", lang);
     if (topic) p.set("topik", topic);
     if (country) p.set("negara", country.toLowerCase());
+    if (media) p.set("media", media);
     history.replaceState(null, "", p.size ? `?${p}` : location.pathname);
-  }, [q, lang, topic, country]);
+  }, [q, lang, topic, country, media]);
 
   // A filter alone is enough to list results; text needs two letters.
-  const active = q.trim().length >= 2 || !!(lang || topic || country);
+  const active = q.trim().length >= 2 || !!(lang || topic || country || media);
 
   const hits = useMemo(() => {
     if (!index || !active) return [];
     const terms = q.trim().length >= 2 ? fold(q).split(/\s+/).filter(Boolean) : [];
     return index
-      .filter((e) => (!lang || e.l === lang) && (!topic || e.tp === topic) && (!country || e.c?.includes(country)))
+      .filter((e) => (!lang || e.l === lang) && (!topic || e.tp === topic) && (!country || e.c?.includes(country)) && (!media || (media === "gambar") === !!e.m))
       .map((e) => {
         const title = fold(e.t), rest = fold(`${e.s} ${e.a} ${e.src}`);
         let score = 0;
@@ -124,7 +127,7 @@ export function Search({ ui, labels, langs, topics, countries }: {
       .filter((x): x is { e: Entry; score: number } => !!x)
       .sort((a, b) => b.score - a.score || b.e.d.localeCompare(a.e.d))
       .slice(0, 60);
-  }, [index, q, lang, topic, country, active]);
+  }, [index, q, lang, topic, country, media, active]);
 
   return (
     <div>
@@ -142,6 +145,11 @@ export function Search({ ui, labels, langs, topics, countries }: {
         <select value={country} onChange={(e) => setCountry(e.target.value)} aria-label={labels.allCountries}>
           <option value="">{labels.allCountries}</option>
           {Object.entries(countries).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+        <select value={media} onChange={(e) => setMedia(e.target.value)} aria-label={labels.allMedia}>
+          <option value="">{labels.allMedia}</option>
+          <option value="gambar">{labels.withImage}</option>
+          <option value="teks">{labels.textOnly}</option>
         </select>
       </form>
       <p className="mono muted" aria-live="polite">

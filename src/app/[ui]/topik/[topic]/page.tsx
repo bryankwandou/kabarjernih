@@ -15,5 +15,5 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
 
 export default async function TopicPage({ params }: P) {
   const { ui, topic } = await params;
-  return <Listing ui={ui} path={`topik/${topic}/`} current={topic} kicker={t(ui).topics} title={topicName(ui, topic)} items={byTopic(topic)} />;
+  return <Listing ui={ui} path={`topik/${topic}/`} current={topic} kicker={t(ui).topics} title={topicName(ui, topic)} items={byTopic(topic)} scope={{ param: "topik", value: topic, label: topicName(ui, topic) }} />;
 }

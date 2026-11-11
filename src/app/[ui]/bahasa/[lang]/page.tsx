@@ -16,5 +16,5 @@ export async function generateMetadata({ params }: P): Promise<Metadata> {
 export default async function LangPage({ params }: P) {
   const { ui, lang } = await params;
   const d = t(ui);
-  return <Listing ui={ui} path={`bahasa/${lang}/`} kicker={d.languages} title={LANGS[lang]?.name ?? lang} lang={lang} intro={d.contentNote} items={byLang(lang)} />;
+  return <Listing ui={ui} path={`bahasa/${lang}/`} kicker={d.languages} title={LANGS[lang]?.name ?? lang} lang={lang} intro={d.contentNote} items={byLang(lang)} scope={{ param: "lang", value: lang, label: LANGS[lang]?.name ?? lang }} />;
 }
