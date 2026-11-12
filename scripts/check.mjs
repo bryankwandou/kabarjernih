@@ -1,8 +1,10 @@
 // Checks the built site in out/ against the promises the README makes.
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const OUT = new URL("../out/", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1");
+// fileURLToPath, not .pathname: the latter keeps %20 and breaks in folders with spaces.
+const OUT = fileURLToPath(new URL("../out/", import.meta.url));
 const articles = JSON.parse(readFileSync(new URL("../data/articles.json", import.meta.url), "utf8"));
 const fails = [];
 const check = (ok, msg) => { if (!ok) fails.push(msg); };

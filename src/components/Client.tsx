@@ -29,6 +29,27 @@ export function SaveButton({ item, labels }: { item: Saved; labels: { save: stri
   );
 }
 
+// Light/dark switch. Without a saved choice the page follows the system; the
+// button names the mode it will switch to.
+export function ThemeToggle({ labels }: { labels: { theme: string; dark: string; light: string } }) {
+  const [mode, setMode] = useState<"dark" | "light" | null>(null);
+  useEffect(() => {
+    const saved = document.documentElement.dataset.theme;
+    setMode(saved === "dark" || saved === "light" ? saved : matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  }, []);
+  const flip = () => {
+    const next = mode === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("kj:theme", next); } catch {}
+    setMode(next);
+  };
+  return (
+    <button type="button" className="theme-btn" onClick={flip} aria-label={labels.theme}>
+      {mode === null ? labels.theme : mode === "dark" ? labels.light : labels.dark}
+    </button>
+  );
+}
+
 export function TextSize({ label }: { label: string }) {
   const steps = [0.9, 1, 1.12, 1.25];
   const [i, setI] = useState(1);

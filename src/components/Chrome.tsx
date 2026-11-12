@@ -1,4 +1,5 @@
 import { Mark, Wordmark } from "./Logo";
+import { ThemeToggle } from "./Client";
 import { LANGS, TOPICS, formatDate, t, topicName, type Ui } from "@/lib/i18n";
 import { lastUpdated, countBy } from "@/lib/data";
 
@@ -17,6 +18,8 @@ export function Masthead({ ui, path = "", current, scope }: { ui: Ui; path?: str
             {d.updated} {updated ? formatDate(updated, ui, true) : "—"}
           </span>
           <span className="mono hide-sm">{d.tagline.split(".")[1]?.trim()}</span>
+          <div className="mast-tools">
+          <ThemeToggle labels={{ theme: d.theme, dark: d.themeDark, light: d.themeLight }} />
           <nav className="ui-switch" aria-label="Bahasa antarmuka / Interface language">
             {(["id", "en"] as const).map((u) => (
               <a key={u} href={`/${u}/${path}`} aria-current={u === ui ? "true" : undefined} hrefLang={u} lang={u}>
@@ -24,6 +27,7 @@ export function Masthead({ ui, path = "", current, scope }: { ui: Ui; path?: str
               </a>
             ))}
           </nav>
+          </div>
         </div>
         <div className="mast-brand">
           <a className="brand" href={`/${ui}/`} aria-label="Kabar Jernih">

@@ -34,7 +34,11 @@ export default async function Layout({ children, params }: { children: React.Rea
   const { ui } = await params;
   if (!isUi(ui)) notFound();
   return (
-    <html lang={ui} className={`${serif.variable} ${mono.variable}`}>
+    <html lang={ui} className={`${serif.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Applies a saved theme before first paint, so the page never flashes the other one. */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var t=localStorage.getItem("kj:theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t}catch(e){}` }} />
+      </head>
       <body>{children}</body>
     </html>
   );
